@@ -1,6 +1,8 @@
 """ Creating the gates needed for the project
 Last updated: 23/02/25"""
 
+import numpy as np
+
 # DenseMatrix Class
 class DenseMatrix:
     
@@ -55,3 +57,19 @@ def cnot_gate():
     C[2, 3] = 1
     C[3, 2] = 1
     return C
+
+# Phase Shift Gate
+def phase_gate(phi):
+    P = DenseMatrix(2)
+    P[0, 0] = 1
+    P[1, 1] = np.exp(1j * phi)
+    return P
+
+# C-V Gate
+def cv_gate():
+    CV = DenseMatrix(4)
+    CV[0, 0] = 1
+    CV[1, 1] = 1
+    CV[2, 2] = 1
+    CV[3, 3] = 1j
+    return CV
