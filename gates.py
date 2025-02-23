@@ -73,3 +73,16 @@ def cv_gate():
     CV[2, 2] = 1
     CV[3, 3] = 1j
     return CV
+
+# Toffoli Gate
+def toffoli_gate():
+    T = DenseMatrix(8)
+    T[0, 0] = 1
+    T[1, 1] = 1
+    T[2, 2] = 1
+    T[3, 3] = 1
+    T[4, 4] = 1
+    T[5, 5] = 1
+    T[6, 7] = 1
+    T[7, 6] = 1
+    return T
