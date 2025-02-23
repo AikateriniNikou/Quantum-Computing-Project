@@ -1,21 +1,25 @@
 """ Creating the gates needed for the project
 Last updated: 23/02/25"""
 
-
 # DenseMatrix Class
 class DenseMatrix:
+    
+    # Creates a square matrix with all elements set to 0
     def __init__(self, dimension):
         self.dimension = dimension
         self.data = [[0 for i in range(dimension)] for i in range(dimension)]
     
+    # Gets the value of an element from row and column
     def __getitem__(self, key):
         row, col = key
         return self.data[row][col]
     
+    # Sets the value of an element from row and column
     def __setitem__(self, key, value):
         row, col = key
         self.data[row][col] = value
     
+    # Output when printed
     def __repr__(self):
         s = ""
         for row in self.data:
