@@ -57,13 +57,3 @@ def T_GATE():
     T[6, 7] = 1
     T[7, 6] = 1
     return T
-
-# Take tensor product of H gate with I gate
-# print(H_GATE().tensor_product(I_GATE()))
-
-# Take matrix multiplication of H gate with I gate
-# print(H_GATE().matrix_multiply(I_GATE()))
-
-# Create CNOT_GATE with H & CV Gates
-# CNOT_GATE = I_GATE().tensor_product(H_GATE()).matrix_multiply(CV_GATE()).matrix_multiply(CV_GATE()).matrix_multiply(I_GATE().tensor_product(H_GATE()))
-# print(CNOT_GATE)

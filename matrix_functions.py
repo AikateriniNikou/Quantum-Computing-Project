@@ -1,6 +1,24 @@
 """ Functions for matrices
 Last updated: 26/02/25"""
 
+class Vector:
+    def __init__(self, values):
+        self.values = list(values)
+        self.dimension = len(values)
+
+    def __getitem__(self, index):
+        return self.values[index]
+
+    def __setitem__(self, index, value):
+        self.values[index] = value
+
+    def __repr__(self):
+        s = "["
+        for r in self.values:
+            s += str(r) + " "
+        s = s + "]"
+        return s
+
 # SquareMatrix Class
 class SquareMatrix:
     
@@ -56,6 +74,15 @@ class SquareMatrix:
                 result[i, j] = sum(self[i, k] * other[k, j] for k in range(dim))
 
         return result
+
+    def multiply_vector(self, vector):
+        """Multiplies the square matrix with a vector."""
+        if self.dimension != vector.dimension:
+            raise ValueError("Matrix and vector dimensions must match!")
+
+        result_values = [sum(self[i, j] * vector[j] for j in range(self.dimension)) for i in range(self.dimension)]
+        return Vector(result_values)
+
 
 # Calculate tensor product
 # def tensor_product(A, B):
