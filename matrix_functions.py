@@ -75,10 +75,11 @@ class SquareMatrix:
 
         return result
 
+    # Multiply matrix with vector
     def multiply_vector(self, vector):
-        """Multiplies the square matrix with a vector."""
+
         if self.dimension != vector.dimension:
-            raise ValueError("Matrix and vector dimensions must match!")
+            raise ValueError("Matrix and vector dimensions don't match")
 
         result_values = [sum(self[i, j] * vector[j] for j in range(self.dimension)) for i in range(self.dimension)]
         return Vector(result_values)
