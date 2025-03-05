@@ -16,8 +16,8 @@ def tensor_product(a, b):
 
     b_flat = b.flatten()
 
-	# makes a_flat a column vector, then multiplies by the row vector b_flat to make a matrix of (len(a_flat), len(b_flat))
+    # makes a_flat a column vector, then multiplies by the row vector b_flat to make a matrix of (len(a_flat), len(b_flat))
     product = a_flat[:, np.newaxis] * b_flat
 	
-	# returns the tensor product in the calculated shape 
+    # returns the tensor product in the calculated shape 
     return product.reshape(result.shape)
