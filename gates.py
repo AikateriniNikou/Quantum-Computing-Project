@@ -1,5 +1,4 @@
-""" Creating the gates needed for the project
-Last updated: 26/02/25"""
+""" Creating the gates needed for the project"""
 
 from matrix_functions import *
 
@@ -19,6 +18,15 @@ def I_GATE():
     I[0, 0] = 1
     I[1, 1] = 1
     return I
+
+# Z Gate
+def Z_GATE():
+    Z = SquareMatrix(2)
+    Z[0, 0] = 1
+    Z[0, 1] = 1
+    Z[1, 0] = 1
+    Z[1, 1] = -1
+    return Z
 
 # C-NOT Gate
 def CNOT_GATE():
@@ -57,3 +65,12 @@ def T_GATE():
     T[6, 7] = 1
     T[7, 6] = 1
     return T
+
+# Oracle
+def ORACLE():
+    O = SquareMatrix(4)
+    O[0, 0] = 1
+    O[1, 1] = 1
+    O[2, 2] = 1
+    O[3, 3] = -1
+    return O
