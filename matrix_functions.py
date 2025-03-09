@@ -2,6 +2,49 @@
 
 import matplotlib.pyplot as plt
 
+
+# def gather(i, target_qubits):
+#     """Extracts bits of integer i at positions in target_qubits and packs them in order."""
+#     result = 0
+#     for k, q in enumerate(sorted(target_qubits)):
+#         bit = (i >> q) & 1
+#         result |= (bit << k)
+#     return result
+
+# def scatter(j, target_qubits):
+#     """Scatters bits of integer j into positions specified in target_qubits."""
+#     result = 0
+#     for k, q in enumerate(sorted(target_qubits)):
+#         bit = (j >> k) & 1
+#         result |= (bit << q)
+#     return result
+
+# Gets a cnot matrix given control qbit and target qbit
+def generalized_cnot(num_qubits, control, target):
+    
+        size = 2 ** num_qubits  # Total number of states
+        CNOT_matrix = SquareMatrix(size)  # Initialize a SquareMatrix object
+        
+        # Start with identity matrix
+        for i in range(size):
+            CNOT_matrix[i, i] = 1
+        
+        # Modify entries to represent CNOT operation
+        for i in range(size):  # Iterate through all basis states
+            binary = format(i, f'0{num_qubits}b')  # Convert index to binary string
+            if binary[control] == '1':  # Check if control qubit is 1
+                flipped = list(binary)
+                flipped[target] = '1' if flipped[target] == '0' else '0'  # Flip the target qubit
+                j = int(''.join(flipped), 2)  # Convert back to integer
+                
+                # Swap rows and columns in the matrix
+                CNOT_matrix[i, i] = 0
+                CNOT_matrix[j, j] = 0
+                CNOT_matrix[i, j] = 1
+                CNOT_matrix[j, i] = 1
+        
+        return CNOT_matrix
+
 # Vector Class
 class Vector:
     
@@ -44,6 +87,15 @@ class qbit(Vector):
             super().__init__([1, 0] if alpha == 0 else [0, 1])
         else:
             super().__init__([alpha, beta])
+            
+    # Multiply matrix with vector
+    def multiply_vector(self, vector):
+
+        if self.dimension != vector.dimension:
+            raise ValueError("Matrix and vector dimensions don't match")
+
+        result_values = [sum(self[i, j] * vector[j] for j in range(self.dimension)) for i in range(self.dimension)]
+        return Vector(result_values)
 
     
 # SquareMatrix Class
@@ -111,6 +163,7 @@ class SquareMatrix:
         result_values = [sum(self[i, j] * vector[j] for j in range(self.dimension)) for i in range(self.dimension)]
         return Vector(result_values)
 
+# The Quantum Computing program
 class qprogram(object):
     
     # Initialise quantum program
@@ -123,28 +176,91 @@ class qprogram(object):
             for each in custom:
                 self.qbits.append(qbit(each))
         self.gates = [[] for i in range(nqbits)]
-
+        self.quantum_state = []
+        
+    def I_GATE(self, n):
+        I = SquareMatrix(n)
+        for i in range(n):
+            I[i, i] = 1
+        return I
+    
     # Output when printed
     def __repr__(self) -> str:
         return "[" + ", ".join(str(r) for r in self.qbits) + "]"
     
-    # Addgates function
-    def addgates(self, qbitindex : int, gates : list):
-        self.gates[qbitindex] += gates
-    
-    # Applies added gates
-    def apply_gates(self):
-        for i in range(self.nqbits):  # Iterate over all qubits
-            for gate in self.gates[i]:  # Iterate over gates assigned to the qubit
-                self.qbits[i] = gate.multiply_vector(self.qbits[i])  # Apply the gate to the qubit
-                
-    # Remove a gate at an index
-    def removegate(self, qbitindex : int, gateindex : int = -1):
-        del self.gates[qbitindex][gateindex]
+    def addgates(self, qbitindex, gates, control_positions=None):
+        """ Add single-qubit or multi-qubit gates """
+        if control_positions is None:
+            self.gates[qbitindex] += gates
+            
+            # Apply identity gate to all other qubits
+            for i in range(self.nqbits):
+                if i != qbitindex:
+                    self.gates[i].append(self.I_GATE(2))
+                    
+        else:
+            self.gates[qbitindex].append([control_positions, gates])
+            
+            # Apply identity gate to all other qubits
+            for i in range(self.nqbits):
+                if i != qbitindex:
+                    self.gates[i].append(self.I_GATE(gates[0].dimension))
+
         
-    # Clear all gates at an index
-    def cleargates(self, qbitindex : int):
-        self.gates[qbitindex] = []
+    # Applies the gates 
+    def apply_gates(self):
+        num_gates = max(len(gates) for gates in self.gates)
+        
+        # Start with identity matrix for full system
+        full_gate_matrix = SquareMatrix(2**self.nqbits)
+        for i in range(2**self.nqbits):
+            full_gate_matrix[i, i] = 1
+
+        # Construct the full gate matrix by applying tensor products
+        for gate_index, n in enumerate(range(num_gates)):
+            tensor_product = self.gates[0][gate_index]
+            for i in range(1, self.nqbits):
+                if isinstance(tensor_product, list):
+                    tensor_product = generalized_cnot(self.nqbits, 0, tensor_product[0][0])
+                    break
+                    #tensor_product = tensor_product[1][0].mtensor(self.gates[i][gate_index])
+                else:
+                    tensor_product = tensor_product.mtensor(self.gates[i][gate_index])
+
+            
+            # Multiply into full gate matrix
+            full_gate_matrix = tensor_product.matrix_multiply(full_gate_matrix)
+            
+        # Apply the final constructed gate matrix to the quantum state
+        full_state = self._get_full_state()
+
+        new_state = full_gate_matrix.multiply_vector(full_state)
+        self._set_full_state(new_state)
+        self.quantum_state = new_state
+
+    # Gets the quantum state
+    def _get_full_state(self):
+        state_all = self.qbits
+        ini_state = state_all[0]
+        for i in range(len(state_all)-1):
+            ini_state = ini_state.vtensor(state_all[i+1])
+            
+        return ini_state
+    
+    # Sets the quantum state
+    def _set_full_state(self, full_state):
+        size = 2
+        for i in range(self.nqbits):
+            self.qbits[i] = full_state[:size]
+            size *= 2        
+    
+    # # Remove a gate at an index
+    # def removegate(self, qbitindex : int, gateindex : int = -1):
+    #     del self.gates[qbitindex][gateindex]
+        
+    # # Clear all gates at an index
+    # def cleargates(self, qbitindex : int):
+    #     self.gates[qbitindex] = []
     
     # View matrix representation of gates
     def viewgates(self):
@@ -162,9 +278,7 @@ class qprogram(object):
         self.apply_gates()  
 
         # Compute the tensor product of all qubits
-        final_state = self.qbits[0]
-        for qubit in self.qbits[1:]:
-            final_state = final_state.vtensor(qubit)
+        final_state = self.quantum_state
             
         # Store the final quantum state
         self.final_state = final_state  
@@ -192,46 +306,3 @@ class qprogram(object):
         plt.title("Quantum State Probabilities")
         plt.ylim(0, 1)
         plt.show()
-
-
-
-# Calculate tensor product
-# def tensor_product(A, B):
-    
-#     # Calculate matrix sizes from rows (r) and columns (c)
-#     r_A, c_A = len(A), len(A[0])
-#     r_B, c_B = len(B), len(B[0])
-
-#     # Create matrix
-#     result = [[0] * (c_A * c_B) for i in range(r_A * r_B)]
-
-#     # Calculate tensor product
-#     for i in range(r_A):
-#         for j in range(c_A):
-#             for k in range(r_B):
-#                 for l in range(c_B):
-#                     result[i * r_B + k][j * c_B + l] = A[i][j] * B[k][l]
-
-#     return result
-
-# Caclulate matrix multiplication
-# def matrix_multiply(A, B):
-    
-#     # Calculate matrix sizes from rows (r) and columns (c)
-#     r_A, c_A = len(A), len(A[0])
-#     r_B, c_B = len(B), len(B[0])
-
-#     # Check multiplication validity
-#     if c_A != r_B:
-#         raise ValueError("Matrix dimensions do not match for multiplication!")
-
-#     # Create matrix
-#     result = [[0 for i in range(c_B)] for i in range(r_A)]
-
-#     # Calculate multiplication
-#     for i in range(r_A):
-#         for j in range(c_B):
-#             for k in range(c_A):  
-#                 result[i][j] += A[i][k] * B[k][j]
-
-#     return result

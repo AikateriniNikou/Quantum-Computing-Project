@@ -23,8 +23,6 @@ def I_GATE():
 def Z_GATE():
     Z = SquareMatrix(2)
     Z[0, 0] = 1
-    Z[0, 1] = 1
-    Z[1, 0] = 1
     Z[1, 1] = -1
     return Z
 
