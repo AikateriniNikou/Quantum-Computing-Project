@@ -1,6 +1,7 @@
 '''
-A bitwise hgrovers algorithm based on the general method given in https://arxiv.org/pdf/1805.00988 - see page 5 - 
-Can combine with gate definitions from things we can do and some state registry definition.
+A bitwise grovers algorithm based on the general method given in https://arxiv.org/pdf/1805.00988 - see page 5 - 
+Can combine with gate definitions from things we can do and some state registry definition. This file was initially written
+with jupyter cells so let me know if theres any issues.
 '''
 import numpy as np
 import math as m
