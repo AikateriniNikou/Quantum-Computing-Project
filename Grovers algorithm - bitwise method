@@ -1,0 +1,168 @@
+'''
+A bitwise grovers algorithm based on the general method given in https://arxiv.org/pdf/1805.00988 - see page 5 - 
+Can combine with gate definitions from things we can do and some state registry definition. This file was initially written
+with jupyter cells so let me know if theres any issues.
+'''
+import numpy as np
+import math as m
+import random
+
+#defining qm gates
+def gates():
+    #hadamard gate to get all states in superposition
+    H = (1/m.sqrt(2))*np.array([[1,1],[1,-1]])
+    # pauli x gate to act as equivalent to not gate
+    P_x = np.array([[0, 1], [1, 0]])
+    #pauli z gate
+    P_z = np.array([[1, 0], [0, -1]])
+    return H,P_x,P_z
+
+#creating intitial register
+def initialize_register(N_q):
+    """
+    :param N_q: total number of qubits 
+    """
+    # making sure the intial number of qubits is an interger
+    assert isinstance(N_q, int), "N_q should be an integer"
+    # Create a state vector with 2^n elements
+    state_vector = np.zeros(2**N_q, dtype = complex)
+    # Set the initial state |0...0⟩
+    state_vector[0] = 1
+    return state_vector
+
+def initialize_register(N_q): #creating intitial register
+    """
+    :param N_q: total number of qubits 
+    """
+    # making sure the intial number of qubits is an interger
+    assert isinstance(N_q, int), "N_q should be an integer"
+    # Create a state vector with 2^n elements
+    state_vector = np.zeros(2**N_q, dtype = complex)
+    # Set the initial state |0...0⟩
+    state_vector[0] = 1
+    return state_vector
+
+
+def apply_gate2(v: np.ndarray, G: np.ndarray, t: int):
+    """Applies a single-qubit gate G to qubit t in state vector v.
+    :param v: The quantum state vector (size 2^Q).
+    :param G: A 2x2 matrix representing the single-qubit gate.
+    :param t: Index of the target qubit (0-based).
+    """
+    Q = int(np.log2(len(v)))  # Number of qubits
+    new_v = np.copy(v)  # Copy to avoid modifying v while iterating
+
+    for i in range(2**(Q)):  # loop over 2^(n-1) states
+        if i & (1 << t) == 0:
+            a = i  # State where target qubit is 0
+            b = a | (1 << t)    # Set t-th bit to 1
+
+        # Simultaneously update amplitudes
+        new_va = G[0, 0] * v[a] + G[0, 1] * v[b]
+        new_vb = G[1, 1] * v[b] + G[1, 0] * v[a]
+
+        new_v[a], new_v[b] = new_va, new_vb  # Store updates
+
+    return new_v
+
+
+def n_fold_controlled_gate(v, G, controls, target, Q):
+    """
+    Applies a controlled single-qubit gate based on a bitwise Algorithm.
+
+    :param v: The quantum state vector (size 2^Q).
+    :param G: A 2x2 matrix representing the single-qubit gate.
+    :param control: Index of the control qubits (0-based).
+    :param target: Index of the target qubit (0-based).
+    :param Q: Total number of qubits.
+    :return: Updated quantum state.
+
+    leftmost bit corresponds to the most significant qubit. ie control = 1
+    corresponds to leftmost bit in a 2 qubit system.
+    """
+    #ensures control qubits are passed through correctly
+    if isinstance(controls, int):  
+        controls = [controls]  # Convert to a list if it's a single integer
+        
+    new_v = np.copy(v)  # Copy the state vector
+
+    for i in range(2**(Q)):  # loop over 2^(n-1) states
+        if i & (1 << target) == 0:
+            a = i  # State where target qubit is 0
+            b = a | (1 << target)   # State where target qubit is 1
+
+            # Making sure all control qubits are 1 in order to flip target
+            if all((a & (1 << ctrl)) != 0 for ctrl in controls):
+                #print statements to test that bit flipping is correct
+                #print(f"Flipping target {target} for state {bin(a)[2:].zfill(Q)}")
+                #print(f"Before swap: a={a} ({bin(a)[2:].zfill(Q)}), b={b} ({bin(b)[2:].zfill(Q)})")
+                
+                #getting correct indices to apply gates
+                #bit values
+                va = v[a]
+                vb = v[b]
+
+                new_va = G[0, 0] * va + G[0, 1] * vb
+                new_vb = G[1, 0] * va + G[1, 1] * vb
+                
+
+                new_v[a] = new_va
+                new_v[b] = new_vb
+
+    return new_v
+
+
+def Grovers(Q): #grovers algorithm with Q the number of qubits
+    #getting intial state register
+    sv = initialize_register(Q)
+    #oracle position - defined randomly so unknown
+    oracle_pos= random.randint(0, len(sv) - 1)
+    #brining in gates
+    H,P_x,P_z = gates()
+    #creating intial superpostion
+    for i in range(Q):
+        sv = apply_gate2(sv,H, i)
+    #setting limit which is up to pi/4 sqrtN from theory
+    lim = (np.pi/4)*m.sqrt(len(sv))
+    count = 1
+    #defning a list to act as control and target indexs for n-1 fold Z gate later
+    qubits = [q for q in range(Q)]
+    #enacting the algorithm
+    while count < lim:
+        sv[oracle_pos] *= -1 #reflection V of oracle position
+        for t in range(Q):
+            sv = apply_gate2(sv,H, t) #applying n hadamard gates
+        for t in range(Q):
+            sv = apply_gate2(sv,P_x, t) #applying n pauli X gates
+        sv = n_fold_controlled_gate(sv,P_z,qubits[1:],qubits[0],Q)  #applying (n-1)fold pauli Z gate
+        for t in range(Q):
+            sv = apply_gate2(sv,P_x, t) #sandwiching
+        for t in range(Q):
+            sv = apply_gate2(sv,H, t)
+        sv = sv*-1 #diffusion operator found is -W so need to multiply register by -1
+        count += 1
+    return sv,oracle_pos
+
+def get_oracle_probability(state_vector, oracle_pos):
+    """
+    Computes the probability of measuring the oracle state.
+
+    :param state_vector: The final quantum state vector.
+    :param oracle_pos: The index of the oracle state.
+    :return: Probability of measuring the oracle state.
+    """
+    probability = np.abs(state_vector[oracle_pos])**2
+    return probability
+
+
+#running grovers test
+#num Qbits
+Q = 8
+#enacting the algorithm
+sv,oracle_pos = Grovers(Q)
+#finding the updated probaility of the oracle chosen state a
+prob = get_oracle_probability(sv, oracle_pos)
+print(f"Final probability of oracle state: {prob:.6f}")
+
+
+
