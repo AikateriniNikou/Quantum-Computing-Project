@@ -5,7 +5,7 @@ The Sparse class represents sparse matrices using a dictionary-based format, all
 
 import numpy as np
 
-class Sparse():
+class SparseMatrix():
     """ A class for efficient representation and manipulation of sparse matrices.
     
     This class converts standard matrices into a sparse dictionary format, reducing memory usage by storing only non-zero elements.

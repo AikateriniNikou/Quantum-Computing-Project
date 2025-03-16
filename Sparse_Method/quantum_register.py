@@ -1,11 +1,7 @@
-""" Interface for representing basis states in quantum computing.
-"""
-
-from abc import ABC, abstractmethod
-
 import numpy as np
-from errors import InputError
-
+import matrix_functions as mf
+from random import random as rnd
+from abc import ABC, abstractmethod
 
 class QubitState(ABC):
     """ Abstract base class for quantum states, acting as an interface.
@@ -107,9 +103,6 @@ class State(QubitState):
         self.d = 2**values[1]    # Total number of basis states
         self.den = values[0]     # Decimal representation of the state
 
-        if self.den > self.d - 1:
-            raise InputError("State cannot be represented with the given number of qubits.")
-
         # Construct vector representation (e.g., |0> = [1,0], |3> = [0,0,0,1])
         vr = np.zeros(self.d)
         vr[self.den] = 1
@@ -128,3 +121,64 @@ class State(QubitState):
     def __str__(self):
         """ Return the Dirac notation representation of the state. """
         return f"|{self.strRep}>" if self.ket else f"<{self.strRep}|"
+    
+""" This module defines the QuantumRegister class, which represents a quantum system at any given time.
+
+The QuantumRegister class maintains a quantum state initialized as a non-superposed basis state and provides methods for applying quantum gates and performing measurements.
+"""
+
+
+class QuantumRegister():
+    """ Represents a quantum register (system) at a given time.
+    
+    The register is initialized with a basis state and stores the state as a vector of amplitudes.
+
+    """
+
+    def __init__(self, input, SparseMatrix=False):
+        """ Initializes the quantum register with a given basis state.
+        """
+        
+        self.qR = input  # Stores the quantum register.
+        self.stateVector = self.qR.vec  # Initializes the state vector.
+        self.qbitVector = np.array([State((i, self.qR.values[1])) for i in range(self.qR.d)])
+
+    def applyGate(self, gate, SparseMatrix=False):
+        """ Applies a quantum gate to the register."""
+        self.stateVector = mf.vecMatProduct(gate, self.stateVector)
+
+    def measure(self):
+        """ Measures the quantum register, selecting a basis state probabilistically."""
+        
+        r = rnd()  # Generate a random number between 0 and 1.
+        cumulative_prob = 0
+        for i in range(self.qR.d):
+            amp = self.stateVector[i]
+            cumulative_prob += amp.real**2 + amp.imag**2  # Compute probability of occurrence.
+            if r <= cumulative_prob:  # Select state based on probability interval.
+                return f"{self.qbitVector[i]}"
+
+    def measure_collapse(self):
+        """ Measures the quantum register and collapses the state.
+        """
+        
+        r = rnd()  # Generate a random number between 0 and 1.
+        cumulative_prob = 0
+        for i in range(self.qR.d):
+            amp = self.stateVector[i]
+            cumulative_prob += amp.real**2 + amp.imag**2  # Compute probability of occurrence.
+            if r <= cumulative_prob:  # Collapse to the chosen state.
+                self.stateVector = np.zeros(self.qR.d)
+                self.stateVector[i] = 1
+                return f"{self.qbitVector[i]}"
+
+    def __str__(self):
+        """ Returns a string representation of the quantum register.
+        
+        """
+        
+        output = ""
+        for i in range(self.qR.d):
+            sign = " +" if self.stateVector[i] >= 0 else " "
+            output += f"{sign}{round(self.stateVector[i], 5)}{self.qbitVector[i]}"
+        return output
