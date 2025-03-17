@@ -1,0 +1,189 @@
+'''
+Code that effectively acts the Quantum fourier transform on a registry.
+Also included is a definition for the inverse fourier transform base on Quantum Computer Science - An Introduction by N.David Mermin
+#%% -> these are used to create jupyter cells that were being used to test the code
+'''
+#%%
+import numpy as np
+import math
+import random
+
+#%%
+#creating intitial register not neccesarry for the QFT as defined below, but ths would be neccessary for the full shors application
+def initialize_registers(N_0):
+    '''
+    N_0: number of qubits needed. 2^N_0 should be the smallest power of 2 that exceeds
+    N in f(x) = b^x mod(N)
+    '''
+    # making sure the intial number of qubits is an interger
+    assert isinstance(N_0, int), "N_q should be an integer"
+    #gates
+    #brining in gates
+    H,P_x,P_z = gates()
+    # Create a input vector with 2^n elements
+    input_reg = np.zeros(2**(N_0*2), dtype = complex)
+    input_reg[0] = 1
+   
+    #applying hadamard gate to all qubits in reg 1
+    for i in range(2* N_0):
+        input_reg = apply_gate2(input_reg,H, i)
+    #output register of size n
+    output_reg = np.zeros(2**N_0, dtype = complex)
+    # Set the initial state |0...0⟩
+    output_reg[1] = 1
+    return input_reg,output_reg
+
+def gates():
+    #hadamard gate to get all states in superposition
+    H = (1/math.sqrt(2))*np.array([[1,1],[1,-1]])
+    # pauli x gate to act as equivalent to not gate
+    P_x = np.array([[0, 1], [1, 0]])
+    #pauli z gate
+    P_z = np.array([[1, 0], [0, -1]])
+    return H,P_x,P_z,
+
+
+def phase_shift(k, dagger=False):
+    """Returns the phase shift gate R_k.
+    
+    If dagger=True, returns the Hermitian (inverse) of R_k.
+    """
+    theta = 2 * np.pi / (2**k)
+    if dagger:
+        theta *= -1  # Flip sign for Hermitian conjugate
+    return np.array([[1, 0], [0, np.exp(1j * theta)]])
+
+
+def apply_gate2(v: np.ndarray, G: np.ndarray, t: int):
+    """Applies a single-qubit gate G to qubit t in state vector v."""
+    Q = int(np.log2(len(v)))  # Number of qubits
+    new_v = np.copy(v)  # Copy to avoid modifying v while iterating
+
+    for i in range(2**(Q)):  # loop over 2^(n-1) states
+        if i & (1 << t) == 0:
+            a = i  # State where target qubit is 0
+            b = a | (1 << t)    # Set t-th bit to 1
+
+        # Simultaneously update amplitudes
+        new_va = G[0, 0] * v[a] + G[0, 1] * v[b]
+        new_vb = G[1, 1] * v[b] + G[1, 0] * v[a]
+
+        new_v[a], new_v[b] = new_va, new_vb  # Store updates
+
+    return new_v
+
+def n_fold_controlled_gate(v, G, controls, target, Q):
+    """
+    Applies a controlled single-qubit gate based on bitwise Algorithm.
+
+    :param v: The quantum state vector (size 2^Q).
+    :param G: A 2x2 matrix representing the single-qubit gate.
+    :param control: Index of the control qubits (0-based).
+    :param target: Index of the target qubit (0-based).
+    :param Q: Total number of qubits.
+    :return: Updated quantum state.
+
+    leftmost bit corresponds to the most significant qubit. ie control = 1
+    corresponds to leftmost bit in a 2 qubit system.
+    """
+    #ensures control qubits are passed through correctly
+    if isinstance(controls, int):  
+        controls = [controls]  # Convert to a list if it's a single integer
+        
+    new_v = np.copy(v)  # Copy the state vector
+
+    for i in range(2**(Q)):  # loop over 2^(n-1) states
+        if i & (1 << target) == 0:
+            a = i  # State where target qubit is 0
+            b = a | (1 << target)   # State where target qubit is 1
+
+            # Making sure all control qubits are 1 in order to flip target
+            if all((a & (1 << ctrl)) != 0 for ctrl in controls):
+                #getting correct indices to apply gates to based on gate
+                #bit values
+                va = v[a]
+                vb = v[b]
+
+                new_va = G[0, 0] * va + G[0, 1] * vb
+                new_vb = G[1, 0] * va + G[1, 1] * vb
+                
+
+                new_v[a] = new_va
+                new_v[b] = new_vb
+
+    return new_v
+
+
+def swap_registry_values(registry):
+    """
+    Swap values in the quantum registry based on symmetric bit swaps.
+    """
+    num_qubits = len(format(len(registry) - 1, 'b'))  # Number of qubits (bits needed)
+    swapped_registry = registry.copy()  # Copy the registry
+
+    for i in range(len(registry)):
+        swapped_index = swap_symmetric_bits(i, num_qubits)  # Get new index
+        swapped_registry[swapped_index] = registry[i]  # Swap values
+
+  return swapped_registry
+
+def QFT(Q,register):
+    '''
+    Q: the number of qubits in the registry
+    '''
+    #gate time
+    H,P_x,P_z = gates()
+    #quantum registers
+    p = register
+    #acting a bit reversal pemutation on the qubit states
+    p = swap_registry_values(p)
+
+    g = list(range(Q))
+    for c in range(Q):
+        #print("target qubit index", c)
+        g.pop(0)
+        #applying hadamard gate to each qubit in registry
+        p = apply_gate2(p,H, c)
+        #print("len of reg",len(p))
+        #applying controlled phase gates
+        for t in g:
+            #phase shift for phase shift gate
+            k = abs(c - t)
+            #print("the phase control is", k)
+            #print("sub qubit index", t)
+            R = phase_shift(k)
+            p = n_fold_controlled_gate(p,R,c,t,Q)
+            #print("len of reg 2",len(p))
+
+    return p
+
+def inverse_QFT(Q,state):
+    # Define Hadamard and Phase shift gates
+    H, P_x, P_z = gates()  
+    p = state 
+    g = list(range(Q))
+    #from eqn 3.45 in book :) is the same but V hermitian
+    #acting a bit reversal pemutation on the qubit states
+    p = swap_registry_values(p)
+
+    for c in range(Q):
+        #print("target qubit index", c)
+        g.pop(0)
+        #applying hadamard gate to each qubit in registry
+        p = apply_gate2(p,H, c)
+        #print("len of reg",len(p))
+        #applying controlled phase gates
+        for t in g:
+            #phase shift for phase shift gate
+            k = abs(c - t)
+            print("the phase control is", k)
+            print("sub qubit index", t)
+            R = phase_shift(k, dagger = True)
+            p = n_fold_controlled_gate(p,R,c,t,Q)
+            #print("len of reg 2",len(p))
+
+   
+    
+    
+    
+    return p
