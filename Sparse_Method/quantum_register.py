@@ -23,15 +23,8 @@ class QubitState(ABC):
     strRep : str
         A string representation of the quantum state in superposition form.
     ket : bool
-        Determines whether the state is represented as a ket or bra.
+        Determines whether the state is represented as a ket or bra."""
 
-    Abstract Methods
-    ----------------
-    flip(self)
-        Implemented in subclasses to switch between ket and bra notation.
-    __str__(self)
-        Implemented in subclasses to return the appropriate string representation.
-    """
 
     @abstractmethod
     def __init__(self, values, ket=True):
@@ -40,15 +33,7 @@ class QubitState(ABC):
         self.ket = ket
         self.strRep = ""
 
-    @abstractmethod
-    def flip(self):
-        """ Switch between ket and bra representation. """
-        pass
     
-    @abstractmethod
-    def __str__(self):
-        """ Return an appropriate string representation of the state. """
-        pass
 
 
 class State(QubitState):
@@ -114,10 +99,6 @@ class State(QubitState):
         for val in self.bin:
             self.strRep += str(val)
 
-    def flip(self):
-        """ Switch between ket and bra representation. """
-        self.ket = not self.ket
-
     def __str__(self):
         """ Return the Dirac notation representation of the state. """
         return f"|{self.strRep}>" if self.ket else f"<{self.strRep}|"
@@ -158,27 +139,4 @@ class QuantumRegister():
             if r <= cumulative_prob:  # Select state based on probability interval.
                 return f"{self.qbitVector[i]}"
 
-    def measure_collapse(self):
-        """ Measures the quantum register and collapses the state.
-        """
-        
-        r = rnd()  # Generate a random number between 0 and 1.
-        cumulative_prob = 0
-        for i in range(self.qR.d):
-            amp = self.stateVector[i]
-            cumulative_prob += amp.real**2 + amp.imag**2  # Compute probability of occurrence.
-            if r <= cumulative_prob:  # Collapse to the chosen state.
-                self.stateVector = np.zeros(self.qR.d)
-                self.stateVector[i] = 1
-                return f"{self.qbitVector[i]}"
-
-    def __str__(self):
-        """ Returns a string representation of the quantum register.
-        
-        """
-        
-        output = ""
-        for i in range(self.qR.d):
-            sign = " +" if self.stateVector[i] >= 0 else " "
-            output += f"{sign}{round(self.stateVector[i], 5)}{self.qbitVector[i]}"
-        return output
+    

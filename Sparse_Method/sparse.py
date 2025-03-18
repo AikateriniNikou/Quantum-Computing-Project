@@ -57,37 +57,3 @@ class SparseMatrix():
             self.size = (0, 0)
             for pos in m:
                 self.size = (max(self.size[0], pos[0] + 1), max(self.size[1], pos[1] + 1))
-
-    def asMatrix(self):
-        """ Reconstructs the full matrix (including zero elements) from the sparse representation.
-        
-        Returns
-        -------
-        numpy array
-            The reconstructed matrix in its original (width x height) form, including zero elements.
-        """
-        
-        output = np.zeros((self.size[0], self.size[1]))
-        for pos, value in self.matrixDict.items():
-            output[pos[0]][pos[1]] = value
-        return output
-
-    def __str__(self):
-        """ Returns a string representation of the full matrix.
-        
-        This method reconstructs the matrix from its sparse representation and formats it as a string.
-        
-        Returns
-        -------
-        str
-            A formatted string representation of the matrix, including zero elements.
-        
-        Example
-        -------
-        A 3x3 matrix with a single non-zero element:
-        
-        "[0. 0. 0.]
-         [0. 0. 0.]
-         [0. 0. 1.]"
-        """
-        return str(self.asMatrix())

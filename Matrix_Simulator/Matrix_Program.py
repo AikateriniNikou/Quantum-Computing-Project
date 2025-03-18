@@ -426,3 +426,51 @@ def state_as_string(i,N):
     string = binary_string[2:]
     string = string.zfill(N)
     return "|" + string + ">"
+
+
+import time
+total_time = 0
+total_time_history = []
+qp = qprogram([0, 0, 0])
+
+for i in range(3):
+    qp.h(i)
+
+for y in range(300):
+    if y % 25 == 0:
+        print(y)
+    start_time = time.time()  # Record the start time
+    for x in range(2):
+        # Oracle
+        qp.h(2)
+        qp.t(0, 1, 2)
+        qp.h(2)
+        
+        for i in range(3):
+            qp.h(i)
+
+        for i in range(4):
+            qp.x(i)
+
+        qp.h(2)
+        qp.t(0, 1, 2)
+        qp.h(2)
+
+        for i in range(4):
+            qp.x(i)
+
+        for i in range(3):
+            qp.h(i)
+
+        qp.run(show_states=False, plot=False)
+    end_time = time.time()  # Record the start time
+    total_time += end_time - start_time
+    total_time_history.append(total_time)
+
+
+import csv
+
+# Save to CSV
+with open("data_gate_300.csv", "w", newline="") as file:
+    writer = csv.writer(file)
+    writer.writerow(total_time_history)  # Write the list as a single row
