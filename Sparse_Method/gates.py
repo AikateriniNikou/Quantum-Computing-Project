@@ -1,7 +1,8 @@
 import numpy as np
-import sparse as sp
 import math as m
+import sparse as sp
 import matrix_functions as mf
+
 
 # Construct single quibit gates dictionary
 gates = {

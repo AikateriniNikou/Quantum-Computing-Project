@@ -35,7 +35,6 @@ class SparseMatrix():
     """
 
     def __init__(self, m, s=None):
-        
         if isinstance(m, np.ndarray):
             self.matrixDict = {}
             for x in range(len(m)):
@@ -46,7 +45,7 @@ class SparseMatrix():
             self.matrixDict = m
         else:
             raise TypeError("Sparse matrix must be initialized with a numpy array or dictionary.")
-
+            
         self.len = len(self.matrixDict)
         
         if s is not None:
@@ -55,5 +54,23 @@ class SparseMatrix():
             self.size = (len(m), len(m[0]))
         else:
             self.size = (0, 0)
-            for pos in m:
+            for pos in self.matrixDict:
                 self.size = (max(self.size[0], pos[0] + 1), max(self.size[1], pos[1] + 1))
+                
+        # Define dimension (assumes a square matrix)
+        self.dimension = self.size[0]
+        
+    def __getitem__(self, key):
+        # Return the stored value or 0 if the key is not present.
+        return self.matrixDict.get(key, 0)
+    
+    def multiply_vector(self, vector):
+        if self.dimension != vector.dimension:
+            raise ValueError("Matrix and vector dimensions don't match")
+        result_values = [0] * self.dimension
+        # Multiply only over nonzero elements.
+        for (i, j), value in self.matrixDict.items():
+            result_values[i] += value * vector.values[j]
+        # Return a new Vector with the computed result.
+        from aux_functions import Vector  # Import here if needed
+        return Vector(result_values)
