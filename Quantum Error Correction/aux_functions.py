@@ -2,23 +2,6 @@
 
 import matplotlib.pyplot as plt
 
-
-# def gather(i, target_qubits):
-#     """Extracts bits of integer i at positions in target_qubits and packs them in order."""
-#     result = 0
-#     for k, q in enumerate(sorted(target_qubits)):
-#         bit = (i >> q) & 1
-#         result |= (bit << k)
-#     return result
-
-# def scatter(j, target_qubits):
-#     """Scatters bits of integer j into positions specified in target_qubits."""
-#     result = 0
-#     for k, q in enumerate(sorted(target_qubits)):
-#         bit = (j >> k) & 1
-#         result |= (bit << q)
-#     return result
-
 # Gets a cnot matrix given control qbit and target qbit
 def generalized_cnot(num_qubits, control, target):
     
@@ -253,14 +236,6 @@ class qprogram(object):
         for i in range(self.nqbits):
             self.qbits[i] = full_state[:size]
             size *= 2        
-    
-    # # Remove a gate at an index
-    # def removegate(self, qbitindex : int, gateindex : int = -1):
-    #     del self.gates[qbitindex][gateindex]
-        
-    # # Clear all gates at an index
-    # def cleargates(self, qbitindex : int):
-    #     self.gates[qbitindex] = []
     
     # View matrix representation of gates
     def viewgates(self):
